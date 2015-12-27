@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
 import webbrowser
 import module_init
-import launcher_log
+from instances import xlog
 
 from PyObjCTools import AppHelper
 from AppKit import *
@@ -54,10 +54,13 @@ class MacTrayObject(NSObject):
         menuitem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Config', 'config:', '')
         self.menu.addItem_(menuitem)
 
-        menuitem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Enable Global Goagent Proxy', 'enableProxy:', '')
+        menuitem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Enable Auto Goagent Proxy', 'enableAutoProxy:', '')
         self.menu.addItem_(menuitem)
 
-        menuitem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Disable Global Goagent Proxy', 'disableProxy:', '')
+        menuitem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Enable Global Goagent Proxy', 'enableGlobalProxy:', '')
+        self.menu.addItem_(menuitem)
+
+        menuitem = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_('Disable Goagent Proxy', 'disableProxy:', '')
         self.menu.addItem_(menuitem)
 
         # Rest Menu Item
@@ -77,7 +80,9 @@ class MacTrayObject(NSObject):
         nc.addObserver_selector_name_object_(self, 'windowWillClose:', NSWorkspaceWillPowerOffNotification, None)
 
     def windowWillClose_(self, notification):
+        self.disableProxy_(None)
         module_init.stop_all()
+        os._exit(0)
         NSApp.terminate_(self)
 
     def config_(self, notification):
@@ -90,30 +95,43 @@ class MacTrayObject(NSObject):
         module_init.stop("gae_proxy")
         module_init.start("gae_proxy")
 
-    def enableProxy_(self, _):
-        cmd1 = "networksetup -setwebproxy Ethernet 127.0.0.1 8087"
-        cmd2 = "networksetup -setwebproxy Wi-Fi 127.0.0.1 8087"
-        cmd3 = "networksetup -setwebproxystate Ethernet on"
-        cmd4 = "networksetup -setwebproxystate Wi-Fi on"
-        cmd5 = "networksetup -setsecurewebproxy Ethernet 127.0.0.1 8087"
-        cmd6 = "networksetup -setsecurewebproxy Wi-Fi 127.0.0.1 8087"
-        cmd7 = "networksetup -setsecurewebproxystate Ethernet on"
-        cmd8 = "networksetup -setsecurewebproxystate Wi-Fi on"
-        exec_command = "%s;%s;%s;%s;%s;%s;%s;%s" % (cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8)
+    def enableAutoProxy_(self, _):
+        cmd1 = "networksetup -setautoproxyurl Ethernet \\\"http://127.0.0.1:8086/proxy.pac\\\""
+        cmd2 = "networksetup -setautoproxyurl \\\"Thunderbolt Ethernet\\\" \\\"http://127.0.0.1:8086/proxy.pac\\\""
+        cmd3 = "networksetup -setautoproxyurl Wi-Fi \\\"http://127.0.0.1:8086/proxy.pac\\\""
+        exec_command = "%s;%s;%s" % (cmd1, cmd2, cmd3)
         admin_command = """osascript -e 'do shell script "%s" with administrator privileges' """ % exec_command
         cmd = admin_command.encode('utf-8')
-        launcher_log.info("try enable proxy:%s", cmd)
+        xlog.info("try enable proxy:%s", cmd)
+        os.system(cmd)
+
+    def enableGlobalProxy_(self, _):
+        cmd1 = "networksetup -setwebproxy Ethernet 127.0.0.1 8087"
+        cmd2 = "networksetup -setwebproxy \\\"Thunderbolt Ethernet\\\" 127.0.0.1 8087"
+        cmd3 = "networksetup -setwebproxy Wi-Fi 127.0.0.1 8087"
+        cmd4 = "networksetup -setsecurewebproxy Ethernet 127.0.0.1 8087"
+        cmd5 = "networksetup -setsecurewebproxy \\\"Thunderbolt Ethernet\\\" 127.0.0.1 8087"
+        cmd6 = "networksetup -setsecurewebproxy Wi-Fi 127.0.0.1 8087"
+        exec_command = "%s;%s;%s;%s;%s;%s" % (cmd1, cmd2, cmd3, cmd4, cmd5, cmd6)
+        admin_command = """osascript -e 'do shell script "%s" with administrator privileges' """ % exec_command
+        cmd = admin_command.encode('utf-8')
+        xlog.info("try enable proxy:%s", cmd)
         os.system(cmd)
 
     def disableProxy_(self, _):
         cmd1 = "networksetup -setwebproxystate Ethernet off"
-        cmd2 = "networksetup -setwebproxystate Wi-Fi off"
-        cmd3 = "networksetup -setsecurewebproxystate Ethernet off"
-        cmd4 = "networksetup -setsecurewebproxystate Wi-Fi off"
-        exec_command = "%s;%s;%s;%s" % (cmd1, cmd2, cmd3, cmd4)
+        cmd2 = "networksetup -setwebproxystate \\\"Thunderbolt Ethernet\\\" off"
+        cmd3 = "networksetup -setwebproxystate Wi-Fi off"
+        cmd4 = "networksetup -setsecurewebproxystate Ethernet off"
+        cmd5 = "networksetup -setsecurewebproxystate \\\"Thunderbolt Ethernet\\\" off"
+        cmd6 = "networksetup -setsecurewebproxystate Wi-Fi off"
+        cmd7 = "networksetup -setautoproxystate Ethernet off"
+        cmd8 = "networksetup -setautoproxystate \\\"Thunderbolt Ethernet\\\" off"
+        cmd9 = "networksetup -setautoproxystate Wi-Fi off"
+        exec_command = "%s;%s;%s;%s;%s;%s;%s;%s;%s" % (cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9)
         admin_command = """osascript -e 'do shell script "%s" with administrator privileges' """ % exec_command
         cmd = admin_command.encode('utf-8')
-        launcher_log.info("try disable proxy:%s", cmd)
+        xlog.info("try disable proxy:%s", cmd)
         os.system(cmd)
 
 
@@ -126,7 +144,7 @@ class Mac_tray():
             title, "OK", "Cancel", None, msg)
         alert.setAlertStyle_(0)  # informational style
         res = alert.runModal()
-        launcher_log.debug("dialog_yes_no return %d", res)
+        xlog.debug("dialog_yes_no return %d", res)
 
         # The "ok" button is ``1`` and "cancel" is ``0``.
         if res == 0:
@@ -139,7 +157,7 @@ class Mac_tray():
         return res
 
     def notify_general(self, msg="msg", title="Title", buttons={}, timeout=3600):
-        launcher_log.error("Mac notify_general not implemented.")
+        xlog.error("Mac notify_general not implemented.")
 
 
 sys_tray = Mac_tray()
@@ -157,4 +175,3 @@ def main():
 if __name__ == '__main__':
     main()
     #sys_tray.dialog_yes_no("test", "test message")
-

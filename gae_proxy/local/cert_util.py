@@ -12,7 +12,7 @@ import hashlib
 import threading
 import subprocess
 
-import xlog
+from proxy import xlog
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 python_path = os.path.abspath( os.path.join(current_path, os.pardir, os.pardir, 'python27', '1.0'))
@@ -181,7 +181,7 @@ class CertUtil(object):
         ca.set_pubkey(req.get_pubkey())
         ca.add_extensions([
             OpenSSL.crypto.X509Extension(
-                'basicConstraints', False, 'CA:TRUE', ca, ca)
+                'basicConstraints', False, 'CA:TRUE', subject=ca, issuer=ca)
             ])
         ca.sign(key, CertUtil.ca_digest)
         #logging.debug("CA key:%s", key)
