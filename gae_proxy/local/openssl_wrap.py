@@ -10,7 +10,9 @@ import socket
 import OpenSSL
 SSLError = OpenSSL.SSL.WantReadError
 
-from proxy import xlog
+
+from xlog import getLogger
+xlog = getLogger("gae_proxy")
 
 ssl_version = ''
 

@@ -2,19 +2,19 @@
 # coding:utf-8
 
 import os
-import errno
 import binascii
 import time
 import socket
-import select
-import Queue
 import struct
 import threading
 import operator
 import httplib
 
+
 import socks
-from proxy import xlog
+
+from xlog import getLogger
+xlog = getLogger("gae_proxy")
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 import OpenSSL
@@ -239,7 +239,7 @@ class Https_connection_manager(object):
         response = None
         try:
             ssl_sock.settimeout(10)
-            ssl_sock.sock.settimeout(10)
+            ssl_sock._sock.settimeout(10)
 
             data = request_data.encode()
             ret = ssl_sock.send(data)
@@ -459,9 +459,6 @@ class Https_connection_manager(object):
 
             google_ip.update_ip(ip, handshake_time)
             xlog.debug("create_ssl update ip:%s time:%d", ip, handshake_time)
-            # sometimes, we want to use raw tcp socket directly(select/epoll), so setattr it to ssl socket.
-            ssl_sock.ip = ip
-            ssl_sock.sock = sock
             ssl_sock.fd = sock.fileno()
             ssl_sock.create_time = time_begin
             ssl_sock.received_size = 0

@@ -17,7 +17,9 @@ import locale
 import time
 
 
-from proxy import xlog
+
+from xlog import getLogger
+xlog = getLogger("gae_proxy")
 from config import config
 from appids_manager import appid_manager
 from google_ip import google_ip
@@ -27,6 +29,7 @@ from scan_ip_log import scan_ip_log
 import ConfigParser
 import connect_control
 import ip_utils
+import check_local_network
 import check_ip
 import cert_util
 import simple_http_server
@@ -421,7 +424,7 @@ class ControlHandler(simple_http_server.HttpServerHandler):
                    "out_of_quota_appids": "|".join(appid_manager.out_of_quota_appids),
                    "not_exist_appids": "|".join(appid_manager.not_exist_appids),
 
-                   "network_state": check_ip.network_stat,
+                   "network_state": check_local_network.network_stat,
                    "ip_num": len(google_ip.gws_ip_list),
                    "good_ip_num": good_ip_num,
                    "connected_link_new": len(https_manager.new_conn_pool.pool),
@@ -451,7 +454,7 @@ class ControlHandler(simple_http_server.HttpServerHandler):
             elif reqs['cmd'] == ['set_config']:
                 appids = self.postvars['appid'][0]
                 if appids != user_config.user_special.appid:
-                    if appids:
+                    if appids and google_ip.good_ip_num:
                         fail_appid_list = test_appid.test_appids(appids)
                         if len(fail_appid_list):
                             fail_appid = "|".join(fail_appid_list)
@@ -459,7 +462,7 @@ class ControlHandler(simple_http_server.HttpServerHandler):
 
                     appid_updated = True
                     user_config.user_special.appid = appids
-                user_config.user_special.password = self.postvars['password'][0]
+
                 user_config.user_special.proxy_enable = self.postvars['proxy_enable'][0]
                 user_config.user_special.proxy_type = self.postvars['proxy_type'][0]
                 user_config.user_special.proxy_host = self.postvars['proxy_host'][0]
@@ -469,14 +472,16 @@ class ControlHandler(simple_http_server.HttpServerHandler):
                 user_config.user_special.proxy_user = self.postvars['proxy_user'][0]
                 user_config.user_special.proxy_passwd = self.postvars['proxy_passwd'][0]
                 user_config.user_special.host_appengine_mode = self.postvars['host_appengine_mode'][0]
+
                 use_ipv6 = int(self.postvars['use_ipv6'][0])
                 if user_config.user_special.use_ipv6 != use_ipv6:
                     if use_ipv6:
-                        if not check_ip.check_ipv6():
+                        if not check_local_network.check_ipv6():
                             xlog.warn("Enable Ipv6 but check failed.")
                             return self.send_response('text/html', '{"res":"fail", "reason":"IPv6 fail"}')
 
                     user_config.user_special.use_ipv6 = use_ipv6
+
                 user_config.save()
 
                 config.load()
@@ -689,6 +694,10 @@ class ControlHandler(simple_http_server.HttpServerHandler):
 
         data += "\nGAE conn:\n"
         data += https_manager.gae_conn_pool.to_string()
+
+        for host in https_manager.host_conn_pool:
+            data += "\nHost:%s\n" % host
+            data += https_manager.host_conn_pool[host].to_string()
 
         mimetype = 'text/plain'
         self.send_response(mimetype, data)

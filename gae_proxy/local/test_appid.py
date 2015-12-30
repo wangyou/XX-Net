@@ -1,5 +1,7 @@
 import httplib
-from proxy import xlog
+
+from xlog import getLogger
+xlog = getLogger("gae_proxy")
 
 from connect_manager import https_manager
 
@@ -33,7 +35,7 @@ def test_appid(appid):
     for i in range(0, 3):
         ssl_sock = https_manager.get_new_ssl()
         if not ssl_sock:
-            return False
+            return True
 
         try:
             return test_appid_exist(ssl_sock, appid)

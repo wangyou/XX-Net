@@ -12,8 +12,6 @@ import hashlib
 import threading
 import subprocess
 
-from proxy import xlog
-
 current_path = os.path.dirname(os.path.abspath(__file__))
 python_path = os.path.abspath( os.path.join(current_path, os.pardir, os.pardir, 'python27', '1.0'))
 data_path = os.path.abspath(os.path.join(current_path, os.pardir, os.pardir, 'data', 'gae_proxy'))
@@ -33,6 +31,9 @@ if __name__ == "__main__":
     elif sys.platform == "darwin":
         darwin_lib = os.path.abspath( os.path.join(python_path, 'lib', 'darwin'))
         sys.path.append(darwin_lib)
+
+from xlog import getLogger
+xlog = getLogger("gae_proxy")
 
 import OpenSSL
 
